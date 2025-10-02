@@ -1,7 +1,7 @@
 #include "joinpath.h"
+#include <cstring>
 #include <sstream>
 #include <vector>
-#include <cstring>
 
 #ifdef WIN32
 #pragma warning(disable:4996)
@@ -52,7 +52,19 @@ std::string joinpath(char const *left, char const *right)
 	return std::string(vec.begin(), vec.end());
 }
 
+std::wstring joinpath(wchar_t const *left, wchar_t const *right)
+{
+	std::vector<wchar_t> vec;
+	joinpath_(left, right, &vec);
+	return std::wstring(vec.begin(), vec.end());
+}
+
 std::string joinpath(std::string const &left, std::string const &right)
+{
+	return joinpath(left.c_str(), right.c_str());
+}
+
+std::wstring joinpath(std::wstring const &left, std::wstring const &right)
 {
 	return joinpath(left.c_str(), right.c_str());
 }
@@ -62,6 +74,6 @@ QString qjoinpath(ushort const *left, ushort const *right)
     std::vector<ushort> vec;
 	joinpath_(left, right, &vec);
     if (vec.empty()) return QString();
-    return QString::fromUtf16(&vec[0], vec.size());
+	return QString::fromUtf16(&vec[0], (int)vec.size());
 }
 

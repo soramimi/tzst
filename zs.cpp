@@ -1,10 +1,19 @@
 
 #include "zs.h"
-#include <cstdint>
+#include <fcntl.h>
 #include <functional>
 #include <memory>
-#include <vector>
+#include <sys/stat.h>
 #include <zstd.h>
+
+#ifdef _WIN32
+#include <io.h>
+#define DEFAULT_FILE_PERMISSION (S_IREAD | S_IWRITE)
+#else
+#include <unistd.h>
+#define O_BINARY (0)
+#endif
+
 
 namespace {
 template <typename T> void free_(T *p);
@@ -36,7 +45,7 @@ public:
 };
 }
 
-bool ZS::decompress(std::function<int (char *, int)> const &in_fn, std::function<int (char const *, int)> const &out_fn, filesize_t maxlen)
+bool ZS::decompress(Option const &opt, std::function<int (char *, int)> in_fn, std::function<int (char const *, int)> out_fn, filesize_t maxlen)
 {
 	error = {};
 
@@ -83,11 +92,11 @@ done:;
 	return true;
 }
 
-bool ZS::compress(std::function<int (char *, int)> const &in_fn, std::function<int (char const *, int)> const &out_fn)
+bool ZS::compress(Option const &opt, std::function<int (char *, int)> const &in_fn, std::function<int (char const *, int)> const &out_fn)
 {
 	error = {};
 
-	const int CLEVEL = ZSTD_CLEVEL_DEFAULT;
+	const int CLEVEL = opt.clevel; //ZSTD_CLEVEL_DEFAULT;
 
 	const size_t buffInSize = ZSTD_CStreamInSize();
 	const size_t buffOutSize = ZSTD_CStreamOutSize();
@@ -142,46 +151,3 @@ bool ZS::compress(std::function<int (char *, int)> const &in_fn, std::function<i
 	return true;
 }
 
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-
-int main2(int argc, char **argv)
-{
-	char const *in_file = "zs.cpp";
-	char const *compressed_file = "__compressed.zst";
-	char const *decompressed_file = "__decompressed";
-	{
-		int fd_in = open(in_file, O_RDONLY);
-		if (fd_in != -1) {
-			int fd_out = open(compressed_file, O_WRONLY | O_CREAT | O_TRUNC, S_IREAD | S_IWRITE);
-			if (fd_out != -1) {
-				ZS zs;
-				auto in = [&](char *ptr, int len)->int{
-					return read(fd_in, ptr, len);
-				};
-				auto out = [&](char const *ptr, int len)->int{
-					return write(fd_out, ptr, len);
-				};
-				zs.compress(in, out);
-			}
-		}
-	}
-	{
-		int fd_in = open(compressed_file, O_RDONLY);
-		if (fd_in != -1) {
-			int fd_out = open(decompressed_file, O_WRONLY | O_CREAT | O_TRUNC, S_IREAD | S_IWRITE);
-			if (fd_out != -1) {
-				ZS zs;
-				auto in = [&](char *ptr, int len)->int{
-					return read(fd_in, ptr, len);
-				};
-				auto out = [&](char const *ptr, int len)->int{
-					return write(fd_out, ptr, len);
-				};
-				zs.decompress(in, out);
-			}
-		}
-	}
-	return 0;
-}

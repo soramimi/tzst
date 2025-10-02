@@ -1,3 +1,9 @@
 *.user
 tzst
 *.zst
+tzst.exe
+*.pdb
+a.tar
+a/
+hoge/
+build/
