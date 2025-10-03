@@ -1,4 +1,3 @@
-
 #include "base64.h"
 #include <string.h>
 
@@ -22,20 +21,37 @@ static const unsigned char _decode_table[] = {
 	0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
 };
 
+/**
+ * @brief Encode a single 6-bit value to base64 character
+ * @param c 6-bit value to encode
+ * @return Base64 character
+ */
 static inline unsigned char enc(int c)
 {
 	return _encode_table[c & 63];
 }
 
+/**
+ * @brief Decode a base64 character to 6-bit value
+ * @param c Base64 character to decode
+ * @return 6-bit value
+ */
 static inline unsigned char dec(int c)
 {
 	return _decode_table[c & 127];
 }
 
+/**
+ * @brief Encode binary data to base64 format
+ * @param src Source data buffer
+ * @param length Length of source data
+ * @param out Output vector for base64-encoded data
+ */
 void base64_encode(char const *src, size_t length, std::vector<char> *out)
 {
 	size_t srcpos, dstlen, dstpos;
 
+	// Calculate output length (4 chars per 3 bytes)
 	dstlen = (length + 2) / 3 * 4;
 	out->resize(dstlen);
 	if (dstlen == 0) {
@@ -43,7 +59,9 @@ void base64_encode(char const *src, size_t length, std::vector<char> *out)
 	}
 	char *dst = &out->at(0);
 	dstpos = 0;
+	// Process 3 bytes at a time
 	for (srcpos = 0; srcpos < length; srcpos += 3) {
+		// Pack 3 bytes into 24-bit value
 		int v = (unsigned char)src[srcpos] << 16;
 		if (srcpos + 1 < length) {
 			v |= (unsigned char)src[srcpos + 1] << 8;
@@ -51,19 +69,28 @@ void base64_encode(char const *src, size_t length, std::vector<char> *out)
 				v |= (unsigned char)src[srcpos + 2];
 				dst[dstpos + 3] = enc(v);
 			} else {
+				// Pad last character if only 2 bytes available
 				dst[dstpos + 3] = PAD;
 			}
 			dst[dstpos + 2] = enc(v >> 6);
 		} else {
+			// Pad last 2 characters if only 1 byte available
 			dst[dstpos + 2] = PAD;
 			dst[dstpos + 3] = PAD;
 		}
+		// Encode 24-bit value to 4 base64 characters
 		dst[dstpos + 1] = enc(v >> 12);
 		dst[dstpos] = enc(v >> 18);
 		dstpos += 4;
 	}
 }
 
+/**
+ * @brief Decode base64 data to binary format
+ * @param src Source base64 data
+ * @param length Length of source data
+ * @param out Output vector for decoded binary data
+ */
 void base64_decode(char const *src, size_t length, std::vector<char> *out)
 {
 	unsigned char const *begin = (unsigned char const *)src;
@@ -74,22 +101,27 @@ void base64_decode(char const *src, size_t length, std::vector<char> *out)
 	int count = 0;
 	int bits = 0;
 	while (1) {
+		// Skip whitespace characters
 		if (isspace(*ptr)) {
 			ptr++;
 		} else {
 			unsigned char c = 0xff;
 			if (ptr < end && *ptr < 0x80) {
+				// Decode base64 character
 				c = dec(*ptr);
 			}
 			if (c < 0x40) {
+				// Accumulate 6-bit values
 				bits = (bits << 6) | c;
 				count++;
 			} else {
+				// Handle incomplete group by padding
 				if (count < 4) {
 					bits <<= (4 - count) * 6;
 				}
 				c = 0xff;
 			}
+			// Output bytes when 4 characters accumulated
 			if (count == 4 || c == 0xff) {
 				if (count >= 2) {
 					out->push_back(bits >> 16);
@@ -111,21 +143,41 @@ void base64_decode(char const *src, size_t length, std::vector<char> *out)
 	}
 }
 
+/**
+ * @brief Encode vector of binary data to base64
+ * @param src Source vector containing binary data
+ * @param out Output vector for base64-encoded data
+ */
 void base64_encode(std::vector<char> const *src, std::vector<char> *out)
 {
 	base64_encode(&src->at(0), src->size(), out);
 }
 
+/**
+ * @brief Decode vector of base64 data to binary
+ * @param src Source vector containing base64 data
+ * @param out Output vector for decoded binary data
+ */
 void base64_decode(std::vector<char> const *src, std::vector<char> *out)
 {
 	base64_decode(&src->at(0), src->size(), out);
 }
 
+/**
+ * @brief Encode null-terminated string to base64
+ * @param src Source null-terminated string
+ * @param out Output vector for base64-encoded data
+ */
 void base64_encode(char const *src, std::vector<char> *out)
 {
 	base64_encode((char const *)src, strlen(src), out);
 }
 
+/**
+ * @brief Decode null-terminated base64 string to binary
+ * @param src Source null-terminated base64 string
+ * @param out Output vector for decoded binary data
+ */
 void base64_decode(char const *src, std::vector<char> *out)
 {
 	base64_decode((char const *)src, strlen(src), out);

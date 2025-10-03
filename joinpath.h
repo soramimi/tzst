@@ -18,16 +18,4 @@ static inline std::wstring operator / (std::wstring const &left, std::wstring co
 	return joinpath(left, right);
 }
 
-#include <QString>
-QString qjoinpath(ushort const *left, ushort const *right);
-inline QString joinpath(QString const &left, QString const &right)
-{
-	return qjoinpath(left.utf16(), right.utf16());
-}
-
-static inline QString operator / (QString const &left, QString const &right)
-{
-	return joinpath(left, right);
-}
-
 #endif
