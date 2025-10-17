@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <functional>
 #include <sys/stat.h>
+#include <vector>
 
 #ifdef _WIN32
 #include <io.h>
